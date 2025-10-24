@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Product Catalog with Filters</title>
+    <style>
+        /* ---------------------------------- */
+        /* CSS Styling for Layout and Design */
+        /* ---------------------------------- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            display: flex;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .sidebar {
+            width: 280px;
+            padding: 20px;
+            margin-right: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            height: fit-content;
+        }
+
+        #search-input, #price-max {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #clear-filters-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 0;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            transition: background-color 0.2s;
+        }
+
+        #clear-filters-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar h2, .sidebar h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        
+        #category-filters div, #brand-filters div, #rating-filters div {
+            margin-bottom: 5px;
+        }
+        
+        /* Product Grid */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            flex-grow: 1;
+        }
+
+        .product-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s;
+        }
+        
+        .product-card img {
+            max-width: 100%;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .product-card p.rating {
+            color: #f39c12; /* Star color */
+            font-size: 1.1em;
+            margin: 5px 0;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column; 
+            }
+            .sidebar {
+                width: auto;
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🛒 Enhanced Product Catalog with Filters</h1>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Filter Options</h2>
+            
+            <input type="text" id="search-input" placeholder="Search product name...">
+            
+            <button id="clear-filters-btn">Clear All Filters</button> 
+
+            <h3>Category</h3>
+            <div id="category-filters"></div>
+
+            <h3>Brand</h3>
+            <div id="brand-filters"></div>
+            
+            <h3>Customer Rating</h3>
+            <div id="rating-filters"></div>
+
+            <h3>Max Price (₹)</h3>
+            <div id="price-range">
+                <input type="number" id="price-max" value="800" min="0"> 
+            </div>
+        </aside>
+
+        <main class="product-list-container">
+            <div id="product-list" class="product-grid">
+                </div>
+        </main>
+    </div>
+
+    <script>
+        /* ---------------------------------- */
+        /* JavaScript for Filtering Logic */
+        /* ---------------------------------- */
+
+        // 1. Sample Product Data (with Brand and Rating properties)
+        const allProducts = [
+            { id: 1, name: "N95 Face Mask", category: "Masks", price: 139, brand: "3M", rating: 4.5, image: "https://via.placeholder.com/280x180/ADD8E6/000000?text=3M+Mask" },
+            { id: 2, name: "Disposable Gloves", category: "Gloves", price: 250, brand: "Dettol", rating: 3.8, image: "https://via.placeholder.com/280x180/90EE90/000000?text=Dettol+Gloves" },
+            { id: 3, name: "Hand Sanitizer (500ml)", category: "Sanitizers", price: 450, brand: "LifeGuard", rating: 4.9, image: "https://via.placeholder.com/280x180/F08080/000000?text=Sanitizer" },
+            { id: 4, name: "Reusable Cloth Mask", category: "Masks", price: 100, brand: "3M", rating: 4.1, image: "https://via.placeholder.com/280x180/ADD8E6/000000?text=Cloth+Mask" },
+            { id: 5, name: "Protective Gown", category: "Apparel", price: 800, brand: "Dettol", rating: 3.5, image: "https://via.placeholder.com/280x180/FFA07A/000000?text=Gown" },
+            { id: 6, name: "Small Hand Sanitizer", category: "Sanitizers", price: 200, brand: "LifeGuard", rating: 4.2, image: "https://via.placeholder.com/280x180/F08080/000000?text=Mini+Sanitizer" },
+            { id: 7, name: "Surgical Cap", category: "Apparel", price: 50, brand: "3M", rating: 3.9, image: "https://via.placeholder.com/280x180/FFA07A/000000?text=Surgical+Cap" },
+            { id: 8, name: "Vynil Gloves", category: "Gloves", price: 350, brand: "LifeGuard", rating: 4.7, image: "https://via.placeholder.com/280x180/90EE90/000000?text=Vynil+Gloves" },
+        ];
+
+        // 2. DOM Element References
+        const productListDiv = document.getElementById('product-list');
+        const searchInput = document.getElementById('search-input');
+        const priceMaxInput = document.getElementById('price-max');
+        const categoryFiltersDiv = document.getElementById('category-filters');
+        const brandFiltersDiv = document.getElementById('brand-filters');
+        const ratingFiltersDiv = document.getElementById('rating-filters');
+        const clearFiltersBtn = document.getElementById('clear-filters-btn');
+        
+        const maxInitialPrice = Math.max(...allProducts.map(p => p.price));
+        
+        // Helper function to convert rating number to star emojis
+        function getStarRating(rating) {
+            const fullStars = '★'.repeat(Math.floor(rating));
+            const emptyStars = '☆'.repeat(5 - Math.ceil(rating));
+            return `${fullStars}${emptyStars} (${rating.toFixed(1)})`;
+        }
+
+        // 3. Display Products Function
+        function displayProducts(productsToDisplay) {
+            if (productsToDisplay.length === 0) {
+                productListDiv.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; font-size: 1.2em; color: #7f8c8d;">No products found matching your current filters.</p>';
+                return;
+            }
+
+            productListDiv.innerHTML = productsToDisplay.map(product => `
+                <div class="product-card">
+                    <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/280x180/952523/FFFFFF?text=Product+Image'"> 
+                    <h3>${product.name}</h3>
+                    <p class="rating">${getStarRating(product.rating)}</p>
+                    <p style="color: #2ecc71; font-weight: bold;">₹${product.price.toFixed(2)}</p>
+                    <p><small>Brand: ${product.brand} | Category: ${product.category}</small></p>
+                    <button>View Details</button>
+                </div>
+            `).join('');
+        }
+
+        // 4. Filter Generation Functions
+
+        function generateCategoryFilters() {
+            const categories = [...new Set(allProducts.map(p => p.category))].sort();
+            categoryFiltersDiv.innerHTML = categories.map(category => `
+                <div>
+                    <input type="checkbox" id="cat-${category.replace(/\s/g, '')}" value="${category}">
+                    <label for="cat-${category.replace(/\s/g, '')}">${category}</label>
+                </div>
+            `).join('');
+        }
+
+        function generateBrandFilters() {
+            const brands = [...new Set(allProducts.map(p => p.brand))].sort();
+            brandFiltersDiv.innerHTML = brands.map(brand => `
+                <div>
+                    <input type="checkbox" id="brand-${brand.replace(/\s/g, '')}" value="${brand}">
+                    <label for="brand-${brand.replace(/\s/g, '')}">${brand}</label>
+                </div>
+            `).join('');
+        }
+        
+        function generateRatingFilters() {
+            // Rating tiers: 4.0 & up, 3.0 & up
+            const ratings = [4.0, 3.0]; 
+
+            ratingFiltersDiv.innerHTML = `
+                <div>
+                    <input type="radio" id="rating-all" name="rating-filter" value="0" checked>
+                    <label for="rating-all">All Ratings</label>
+                </div>
+                ` + ratings.map(rating => `
+                <div>
+                    <input type="radio" id="rating-${rating}" name="rating-filter" value="${rating}">
+                    <label for="rating-${rating}">${rating.toFixed(1)} ★ & Up</label>
+                </div>
+            `).join('');
+        }
+
+
+        // 5. Main Filtering Function (Combines all 5 filters)
+        function applyFilters() {
+            let filteredProducts = allProducts;
+            
+            // a. Search Filter
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // b. Price Range Filter
+            const maxPrice = parseFloat(priceMaxInput.value);
+            if (!isNaN(maxPrice) && maxPrice >= 0) {
+                filteredProducts = filteredProducts.filter(product => product.price <= maxPrice);
+            }
+
+            // c. Category Filter
+            const selectedCategories = Array.from(document.querySelectorAll('#category-filters input:checked'))
+                                             .map(checkbox => checkbox.value);
+
+            if (selectedCategories.length > 0) {
+                filteredProducts = filteredProducts.filter(product => 
+                    selectedCategories.includes(product.category)
+                );
+            }
+            
+            // d. Brand Filter (NEW)
+            const selectedBrands = Array.from(document.querySelectorAll('#brand-filters input:checked'))
+                                     .map(checkbox => checkbox.value);
+
+            if (selectedBrands.length > 0) {
+                filteredProducts = filteredProducts.filter(product => 
+                    selectedBrands.includes(product.brand)
+                );
+            }
+            
+            // e. Rating Filter (NEW)
+            const selectedRatingValue = document.querySelector('#rating-filters input[name="rating-filter"]:checked').value;
+            const minRating = parseFloat(selectedRatingValue);
+            
+            if (minRating > 0) {
+                filteredProducts = filteredProducts.filter(product => product.rating >= minRating);
+            }
+
+            // Update the UI
+            displayProducts(filteredProducts);
+        }
+
+        // 6. Event Listeners (Triggers applyFilters on any input change)
+        searchInput.addEventListener('input', applyFilters);
+        priceMaxInput.addEventListener('input', applyFilters);
+        categoryFiltersDiv.addEventListener('change', applyFilters);
+        brandFiltersDiv.addEventListener('change', applyFilters); // New Listener
+        ratingFiltersDiv.addEventListener('change', applyFilters); // New Listener
+
+        // 7. Clear Filters Functionality
+        clearFiltersBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            priceMaxInput.value = maxInitialPrice;
+            document.querySelectorAll('#category-filters input').forEach(cb => cb.checked = false); 
+            document.querySelectorAll('#brand-filters input').forEach(cb => cb.checked = false); // Clear Brands
+            document.getElementById('rating-all').checked = true; // Reset Rating to 'All'
+            applyFilters(); 
+        });
+
+        // 8. Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            generateCategoryFilters();
+            generateBrandFilters(); // Initialize Brand Filters
+            generateRatingFilters(); // Initialize Rating Filters
+            priceMaxInput.value = maxInitialPrice; 
+            displayProducts(allProducts);
+        });
+    </script>
+</body>
+</html>
